@@ -1,0 +1,37 @@
+compile
+run
+compile
+run
+reload
+compile
+reload
+compile
+run
+compile
+run
+compile
+run
+compile
+run
+compile
+run
+compile
+run
+compile
+sbt
+run
+compile
+run
+compile
+run
+run "192.168.56.1" "192.168.56.1"
+compile
+run
+run "192.168.56.1" "192.168.56.1"
+update
+compile
+run
+compile
+run
+compile
+run
