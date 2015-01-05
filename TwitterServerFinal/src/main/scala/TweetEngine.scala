@@ -1,0 +1,128 @@
+package com.twitter.server
+import java.util.Calendar
+import scala.collection.mutable.ArrayBuffer
+import java.net.InetAddress
+import com.typesafe.config.ConfigFactory
+import akka.actor.ActorSystem
+import akka.actor.Actor
+import akka.actor.Props
+import scala.io.Source
+import java.security.MessageDigest
+import scala.collection.mutable.HashMap
+import akka.routing.Router
+import akka.routing.ActorRefRoutee
+import akka.routing.RoundRobinRoutingLogic
+import java.io.FileWriter
+import scala.collection.mutable.Queue
+import akka.remote._
+
+import TweetServer._
+
+class TweetEngine extends Actor {
+
+    override def preStart() {
+      val userDB = "userStore.dat"
+
+      println("Setting up users from file: " + userDB);
+      //Initialize users from user store database
+      for (line <- Source.fromFile(userDB).getLines()) {
+        var input = line.toString;
+        var userName = input.split(",")(0);
+        var passWord = input.split(",")(1);
+        var passHash = hash(passWord)
+        userList += userName
+        UserStore += { userName -> passWord }
+      }
+
+      for (i <- 0 until userList.length) {
+        //Instantiating user objects
+        Users += new TweetUser
+
+      }
+
+      for (i <- 0 until cpuFactor) {
+
+        context.actorOf(Props(new TweetReceiveServer), i.toString) ! "start"
+        context.actorOf(Props(new TweetRoutingServer), "RoutingServer-" + i.toString) ! "start"
+        context.actorOf(Props(new DBWriter), "DBWriter-" + i.toString) ! "start"
+
+      }
+
+    }
+
+  /*  var router = {
+      val routees = Vector.fill(userFactor) {
+        val r = context.actorOf(Props[SetupNode])
+        context watch r
+        ActorRefRoutee(r)
+      }
+      Router(RoundRobinRoutingLogic(), routees)
+    }*/
+
+    def receive = {
+
+      case "tweet_processed" => {
+
+        procTweetCnt += 1
+
+      }
+
+      case "tweet_from_user" => {
+
+        if (tweetCount == 0) {
+          startTime = System.currentTimeMillis();
+        }
+
+        tweetCount += 1
+        if (tweetCount % 1000 ==0) {
+          var endTime = System.currentTimeMillis();
+          println("Tweets received from Users: " + tweetCount)
+          println("Total Tweets processed: " + procTweetCnt)
+          println("Time taken: " + (System.currentTimeMillis() - startTime) + " milli seconds")
+          var fcnt =0
+          for (i <- 0 until userList.length) {
+            
+          
+            fcnt +=Users(i).FollowerList.size 
+
+        }
+        println("Aggregate Follower count: " + fcnt)
+
+        }
+
+      }
+
+      case UserSetup(username) => {
+
+        usersetupcnt += 1;
+        if (usersetupcnt >= userList.length) {
+
+         
+            println("Users Setup Successfully")
+
+          
+
+          /*for (i <- 0 until userList.length) {
+
+            println("Username: " + Users(i).username)
+            println("Password: " + Users(i).password)
+            println("FollowerList" + Users(i).FollowerList)
+            println("Tweet DB File: " + Users(i).tweetDBFile)
+            println("Latest Tweets: " + Users(i).LatestTweets)
+
+          }*/
+
+        }
+
+	
+      }
+
+      case "start" => {
+        for (i <- 0 until userList.length) {
+          //router.route(setup_node(userList(i), i), sender())
+            context.actorOf(Props(new SetupNode)) ! setup_node(userList(i),i)
+           }
+     }
+    }
+
+  }

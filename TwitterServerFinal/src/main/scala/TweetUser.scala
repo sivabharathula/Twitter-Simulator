@@ -1,0 +1,31 @@
+package com.twitter.server
+import java.util.Calendar
+import scala.collection.mutable.ArrayBuffer
+import java.net.InetAddress
+import com.typesafe.config.ConfigFactory
+import akka.actor.ActorSystem
+import akka.actor.Actor
+import akka.actor.Props
+import scala.io.Source
+import java.security.MessageDigest
+import scala.collection.mutable.HashMap
+import akka.routing.Router
+import akka.routing.ActorRefRoutee
+import akka.routing.RoundRobinRoutingLogic
+import java.io.FileWriter
+import scala.collection.mutable.Queue
+
+import TweetServer._
+
+class TweetUser {
+
+    var username = ""
+    var password = ""
+    var FollowerList = ArrayBuffer.empty[String]
+    var LatestTweets = new scala.collection.mutable.Queue[String]
+    var FollowingList = ArrayBuffer.empty[String]
+    var tweetDBFile = ""
+
+    
+
+  }

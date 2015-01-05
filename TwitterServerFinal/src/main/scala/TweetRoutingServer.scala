@@ -1,0 +1,89 @@
+package com.twitter.server
+import java.util.Calendar
+import scala.collection.mutable.ArrayBuffer
+import java.net.InetAddress
+import com.typesafe.config.ConfigFactory
+import akka.actor.ActorSystem
+import akka.actor.Actor
+import akka.actor.Props
+import scala.io.Source
+import java.security.MessageDigest
+import scala.collection.mutable.HashMap
+import akka.routing.Router
+import akka.routing.ActorRefRoutee
+import akka.routing.RoundRobinRoutingLogic
+import java.io.FileWriter
+import scala.collection.mutable.Queue
+import akka.remote._
+
+import TweetServer._
+ 
+ class TweetRoutingServer extends Actor {
+
+    def receive = {
+
+      case "start" =>
+
+      case getUserTweets(user) => {
+
+        //var remote = context.actorFor("akka.tcp://TweetClientSys@" + ipaddr + ":2251/user/TweetSim/" + user)
+	var remote = context.actorSelection("akka.tcp://TweetClientSys@" + ipaddr + ":2251/user/TweetSim/"+ user)
+
+        var userfound = true
+        var i = 0;
+        var userid: Int = 0
+        while (userfound && (i < userList.length)) {
+
+          if (userList(i) == user) {
+            userid = i;
+            userfound = false
+          }
+          i += 1;
+
+        }
+        var tweetlist = Users(userid).LatestTweets
+
+        //var tmp = Users(1).LatestTweets
+        //(tweetlist)
+
+        //remote ! sendUserTweet(tweetlist)
+
+      }
+
+      case PropagateTweet(source, tweet, target) => {
+
+        var userfound = true
+        var i = 0;
+        var userid: Int = 0
+        while (userfound && (i < userList.length)) {
+
+          if (userList(i) == target) {
+            userid = i;
+            userfound = false
+          }
+          i += 1;
+
+        }
+
+        Users(userid).LatestTweets += tweet
+
+        if (Users(userid).LatestTweets.size >= 100) {
+
+          var tmp = Users(userid).LatestTweets.dequeue;
+          var svrid: Int = ((userid*cpuFactor)/userList.length)
+         context.actorSelection("akka://TweetEngine/user/Tweetengine/DBWriter-"+svrid.toString) ! WriteStore(tmp, userid)
+
+          //var filename = Users(UserMap(source)).tweetDBFile
+          //var fw = new FileWriter(filename, true);
+          //fw.write(tmp);
+          //fw.write("\n");
+          //fw.close()
+
+        }
+
+        Tweetengine ! "tweet_processed"
+        //println("Tweets of user " + target + " are : " + Users(userid).LatestTweets)
+
+      }
+    }
+  }

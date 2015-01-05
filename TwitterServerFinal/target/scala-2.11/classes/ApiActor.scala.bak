@@ -1,0 +1,46 @@
+package com.twitter.server
+
+import akka.actor.Actor
+import spray.routing._
+import spray.http._
+import MediaTypes._
+import akka.actor.Props
+import spray.json._
+import MyJsonProtocol._
+import spray.httpx.SprayJsonSupport._ 
+
+class ApiActor extends Actor with ApiService {
+
+  //implicit def format = jsonFormat2
+  def actorRefFactory = context
+
+  def receive = runRoute(reqRoute)
+}
+
+trait ApiService extends HttpService  {
+  val cpuFactor = 10
+
+import MyJsonProtocol._
+  val reqRoute =
+    pathPrefix("api") {
+      /*path("GetTweets" /Segment) { user =>
+        requestContext =>
+          val tweetgetService = actorRefFactory.actorOf(Props(new TweetGetActor()))
+          tweetgetService ! TweetGetActor.GetTweet(user.toString)
+
+      } ~*/
+      path("SendTweet") { 
+	  get {
+           entity(as[Tweet]) { TweetObj =>
+	   complete {
+	    val usertweet = TweetObj.extract[Tweet]
+            val tweetsndService = actorRefFactory.actorOf(Props(new TweetSendActor()))
+            tweetsndService ! TweetSendActor.PlaceTweet(usertweet.source, usertweet.tweetbody)
+            TweetObj
+          }
+         }
+        }
+     }
+  }
+
+}
